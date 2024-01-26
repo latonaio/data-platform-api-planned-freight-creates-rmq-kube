@@ -2,11 +2,11 @@ package dpfm_api_caller
 
 import (
 	"context"
-	dpfm_api_output_formatter "data-platform-api-Lfreight-agreement-creates-rmq-kube/DPFM_API_Output_Formatter"
-	dpfm_api_input_reader "data-platform-api-freight-agreement-creates-rmq-kube/DPFM_API_Input_Reader"
-	"data-platform-api-freight-agreement-creates-rmq-kube/config"
-	"data-platform-api-freight-agreement-creates-rmq-kube/existence_conf"
-	"data-platform-api-freight-agreement-creates-rmq-kube/sub_func_complementer"
+	dpfm_api_input_reader "data-platform-api-planned-freight-creates-rmq-kube/DPFM_API_Input_Reader"
+	dpfm_api_output_formatter "data-platform-api-planned-freight-creates-rmq-kube/DPFM_API_Output_Formatter"
+	"data-platform-api-planned-freight-creates-rmq-kube/config"
+	"data-platform-api-planned-freight-creates-rmq-kube/existence_conf"
+	"data-platform-api-planned-freight-creates-rmq-kube/sub_func_complementer"
 	"sync"
 	"time"
 
@@ -148,14 +148,6 @@ func (c *DPFMAPICaller) subfuncProcess(
 		switch fn {
 		case "Header":
 			c.headerCreate(mtx, wg, subFuncFin, input, output, subfuncSDC, errs, log)
-		case "Item":
-			c.itemCreate(mtx, wg, subFuncFin, input, output, subfuncSDC, errs, log)
-		case "ItemAvailableFreight":
-			c.itemAvailableFreightCreate(mtx, wg, subFuncFin, input, output, subfuncSDC, errs, log)
-		case "Address":
-			c.addressCreate(mtx, wg, subFuncFin, input, output, subfuncSDC, errs, log)
-		case "Partner":
-			c.partnerCreate(mtx, wg, subFuncFin, input, output, subfuncSDC, errs, log)
 
 		default:
 			wg.Done()
@@ -209,138 +201,6 @@ func (c *DPFMAPICaller) headerCreate(
 		err = xerrors.New(output.SubfuncError)
 		return
 	}
-	return
-}
-
-func (c *DPFMAPICaller) itemCreate(
-	mtx *sync.Mutex,
-	wg *sync.WaitGroup,
-	errFin chan error,
-	input *dpfm_api_input_reader.SDC,
-	output *dpfm_api_output_formatter.SDC,
-	subfuncSDC *sub_func_complementer.SDC,
-	errs *[]error,
-	log *logger.Logger,
-) {
-	var err error = nil
-	defer func() {
-		errFin <- err
-	}()
-	defer wg.Done()
-	err = c.complementer.ComplementItem(input, subfuncSDC, log)
-	if err != nil {
-		mtx.Lock()
-		*errs = append(*errs, err)
-		mtx.Unlock()
-		return
-	}
-	output.SubfuncResult = getBoolPtr(true)
-	if subfuncSDC.SubfuncResult == nil || !*subfuncSDC.SubfuncResult {
-		output.SubfuncResult = getBoolPtr(false)
-		output.SubfuncError = subfuncSDC.SubfuncError
-		err = xerrors.New(output.SubfuncError)
-		return
-	}
-
-	return
-}
-
-func (c *DPFMAPICaller) itemAvailableFreightCreate(
-	mtx *sync.Mutex,
-	wg *sync.WaitGroup,
-	errFin chan error,
-	input *dpfm_api_input_reader.SDC,
-	output *dpfm_api_output_formatter.SDC,
-	subfuncSDC *sub_func_complementer.SDC,
-	errs *[]error,
-	log *logger.Logger,
-) {
-	var err error = nil
-	defer func() {
-		errFin <- err
-	}()
-	defer wg.Done()
-	err = c.complementer.ComplementItemAvailableFreight(input, subfuncSDC, log)
-	if err != nil {
-		mtx.Lock()
-		*errs = append(*errs, err)
-		mtx.Unlock()
-		return
-	}
-	output.SubfuncResult = getBoolPtr(true)
-	if subfuncSDC.SubfuncResult == nil || !*subfuncSDC.SubfuncResult {
-		output.SubfuncResult = getBoolPtr(false)
-		output.SubfuncError = subfuncSDC.SubfuncError
-		err = xerrors.New(output.SubfuncError)
-		return
-	}
-
-	return
-}
-
-func (c *DPFMAPICaller) addressCreate(
-	mtx *sync.Mutex,
-	wg *sync.WaitGroup,
-	errFin chan error,
-	input *dpfm_api_input_reader.SDC,
-	output *dpfm_api_output_formatter.SDC,
-	subfuncSDC *sub_func_complementer.SDC,
-	errs *[]error,
-	log *logger.Logger,
-) {
-	var err error = nil
-	defer func() {
-		errFin <- err
-	}()
-	defer wg.Done()
-	err = c.complementer.ComplementAddress(input, subfuncSDC, log)
-	if err != nil {
-		mtx.Lock()
-		*errs = append(*errs, err)
-		mtx.Unlock()
-		return
-	}
-	output.SubfuncResult = getBoolPtr(true)
-	if subfuncSDC.SubfuncResult == nil || !*subfuncSDC.SubfuncResult {
-		output.SubfuncResult = getBoolPtr(false)
-		output.SubfuncError = subfuncSDC.SubfuncError
-		err = xerrors.New(output.SubfuncError)
-		return
-	}
-
-	return
-}
-
-func (c *DPFMAPICaller) partnerCreate(
-	mtx *sync.Mutex,
-	wg *sync.WaitGroup,
-	errFin chan error,
-	input *dpfm_api_input_reader.SDC,
-	output *dpfm_api_output_formatter.SDC,
-	subfuncSDC *sub_func_complementer.SDC,
-	errs *[]error,
-	log *logger.Logger,
-) {
-	var err error = nil
-	defer func() {
-		errFin <- err
-	}()
-	defer wg.Done()
-	err = c.complementer.ComplementPartner(input, subfuncSDC, log)
-	if err != nil {
-		mtx.Lock()
-		*errs = append(*errs, err)
-		mtx.Unlock()
-		return
-	}
-	output.SubfuncResult = getBoolPtr(true)
-	if subfuncSDC.SubfuncResult == nil || !*subfuncSDC.SubfuncResult {
-		output.SubfuncResult = getBoolPtr(false)
-		output.SubfuncError = subfuncSDC.SubfuncError
-		err = xerrors.New(output.SubfuncError)
-		return
-	}
-
 	return
 }
 

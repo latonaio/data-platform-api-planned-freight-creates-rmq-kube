@@ -2,8 +2,8 @@ package sub_func_complementer
 
 import (
 	"context"
-	dpfm_api_input_reader "data-platform-api-freight-agreement-creates-rmq-kube/DPFM_API_Input_Reader"
-	"data-platform-api-freight-agreement-creates-rmq-kube/config"
+	dpfm_api_input_reader "data-platform-api-planned-freight-creates-rmq-kube/DPFM_API_Input_Reader"
+	"data-platform-api-planned-freight-creates-rmq-kube/config"
 	"encoding/json"
 
 	"github.com/latonaio/golang-logging-library-for-data-platform/logger"
@@ -32,7 +32,7 @@ func (c *SubFuncComplementer) ComplementHeader(input *dpfm_api_input_reader.SDC,
 	s := &SDC{}
 	numRange, err := c.ComplementHeader(input, l)
 	if err != nil {
-		return xerrors.Errorf("complement productionOrder error: %w", err)
+		return xerrors.Errorf("complement plannedFreight error: %w", err)
 	}
 	res, err := c.rmq.SessionKeepRequest(nil, c.c.RMQ.QueueToSubFunc()["Headers"], input)
 	if err != nil {
@@ -54,117 +54,6 @@ func (c *SubFuncComplementer) ComplementHeader(input *dpfm_api_input_reader.SDC,
 	subfuncSDC.SubfuncError = s.SubfuncError
 	subfuncSDC.Message.Header = s.Message.Header
 	return nil
-}
-
-func (c *SubFuncComplementer) ComplementItem(input *dpfm_api_input_reader.SDC, subfuncSDC *SDC, l *logger.Logger) error {
-	s := &SDC{}
-	res, err := c.rmq.SessionKeepRequest(nil, c.c.RMQ.QueueToSubFunc()["Items"], input)
-	if err != nil {
-		return err
-	}
-	res.Success()
-
-	err = json.Unmarshal(res.Raw(), s)
-	if err != nil {
-		return err
-	}
-	b, _ := json.Marshal(s.Message)
-	msg := &Message{}
-	err = json.Unmarshal(b, msg)
-	if err != nil {
-		return err
-	}
-	subfuncSDC.SubfuncResult = s.SubfuncResult
-	subfuncSDC.SubfuncError = s.SubfuncError
-
-	subfuncSDC.Message.Item = msg.Item
-
-	return err
-}
-
-func getBoolPtr(b bool) *bool {
-	return &b
-}
-
-func (c *SubFuncComplementer) ComplementItemAvailableFreight(input *dpfm_api_input_reader.SDC, l *logger.Logger) (*NumberRange, error) {
-	rows, err := c.db.Query(
-		`SELECT NumberRangeID, ServiceLabel, FieldNameWithNumberRange, LatestNumber
-		FROM DataPlatformCommonSettingsMysqlKube.data_platform_number_range_latest_number_data
-		WHERE (ServiceLabel, FieldNameWithNumberRange) = ( (?, 'ProductionOrder') );`, input.ServiceLabel,
-	)
-	if err != nil {
-		return nil, xerrors.Errorf("DB Query error: %w", err)
-	}
-	nr := NumberRange{}
-	if !rows.Next() {
-		return nil, xerrors.Errorf("number range does not exist")
-	}
-	err = rows.Scan(
-		&nr.NumberRangeID,
-		&nr.ServiceLabel,
-		&nr.FieldNameWithNumberRange,
-		&nr.LatestNumber,
-	)
-	if err != nil {
-		return nil, xerrors.Errorf("DB Scan error: %w", err)
-	}
-	nr.LatestNumber++
-	input.Header.ItemAvailableFreight = nr.LatestNumber
-	return &nr, nil
-}
-
-func (c *SubFuncComplementer) ComplementAddress(input *dpfm_api_input_reader.SDC, l *logger.Logger) (*NumberRange, error) {
-	rows, err := c.db.Query(
-		`SELECT NumberRangeID, ServiceLabel, FieldNameWithNumberRange, LatestNumber
-		FROM DataPlatformCommonSettingsMysqlKube.data_platform_number_range_latest_number_data
-		WHERE (ServiceLabel, FieldNameWithNumberRange) = ( (?, 'ProductionOrder') );`, input.ServiceLabel,
-	)
-	if err != nil {
-		return nil, xerrors.Errorf("DB Query error: %w", err)
-	}
-	nr := NumberRange{}
-	if !rows.Next() {
-		return nil, xerrors.Errorf("number range does not exist")
-	}
-	err = rows.Scan(
-		&nr.NumberRangeID,
-		&nr.ServiceLabel,
-		&nr.FieldNameWithNumberRange,
-		&nr.LatestNumber,
-	)
-	if err != nil {
-		return nil, xerrors.Errorf("DB Scan error: %w", err)
-	}
-	nr.LatestNumber++
-	input.Header.Address = nr.LatestNumber
-	return &nr, nil
-}
-
-func (c *SubFuncComplementer) ComplementPartner(input *dpfm_api_input_reader.SDC, l *logger.Logger) (*NumberRange, error) {
-	rows, err := c.db.Query(
-		`SELECT NumberRangeID, ServiceLabel, FieldNameWithNumberRange, LatestNumber
-		FROM DataPlatformCommonSettingsMysqlKube.data_platform_number_range_latest_number_data
-		WHERE (ServiceLabel, FieldNameWithNumberRange) = ( (?, 'ProductionOrder') );`, input.ServiceLabel,
-	)
-	if err != nil {
-		return nil, xerrors.Errorf("DB Query error: %w", err)
-	}
-	nr := NumberRange{}
-	if !rows.Next() {
-		return nil, xerrors.Errorf("number range does not exist")
-	}
-	err = rows.Scan(
-		&nr.NumberRangeID,
-		&nr.ServiceLabel,
-		&nr.FieldNameWithNumberRange,
-		&nr.LatestNumber,
-	)
-	if err != nil {
-		return nil, xerrors.Errorf("DB Scan error: %w", err)
-	}
-	nr.LatestNumber++
-	input.Header.Partner = nr.LatestNumber
-	return &nr, nil
 }
 
 func (c *SubFuncComplementer) IncrementLatestNumber(nr *NumberRange, l *logger.Logger) error {
